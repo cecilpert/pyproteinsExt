@@ -7,14 +7,21 @@ import pyproteinsExt.uniprot
 import json
 import os
 import numpy as np
-
+import pyproteins.Core.mdTree as mdTree
 import multiprocessing
-
+import pyproteins.contatiner.Core as ca
 PYTHONIOENCODING='utf-8'
 
 
 class MitabTopology(object):
     def __init__(self, psqObject):
+        self.tmpAdj = ca.dnTree()
+        for psqData in psqObject:
+            self.tmpAdj.add(psqData.interactors[0][0][1], 
+                            psqData.interactors[1][0][1], psqData)
+        
+
+    def __init__OLD(self, psqObject):
         self.tmpAdj = {}
         for psqData in psqObject:
             x = psqData.interactors[0][0][1]
@@ -41,7 +48,7 @@ class MitabTopology(object):
         for (x, xCount) in wRank:
            # print(x, xCount)
             #print(self.tmpAdj[x])
-            #partnerData = { y : self.tmpAdj[x][y] for y in self.tmpAdj[x] if (not y in registred) or (x == y)}
+            partnerData = { y : self.tmpAdj[x][y] for y in self.tmpAdj[x] if (not y in registred) or (x == y)}
             partnerData = {}
             for y in self.tmpAdj[x]:
                 if y in registred and x != y:
@@ -60,16 +67,20 @@ class MitabTopology(object):
                 self.reduxAdj[x] = partnerData
                 registred.add(x)
         #print(c)
+    def keys(self):
+        return  list( self.reduxAdj.keys() )
+
+    def __iter__(self):
+        for d in self.reduxAdj:
+            yield d
+    #    for x in self.reduxAdj:
+    #        for y in self.reduxAdj[y]:
+    #            yield (x, y, self.reduxAdj[x])
 
     def __len__(self):
-        t = 0
-        M = self.reduxAdj
-
-        #M = self.tmpAdj
-        for x in M:
-            for y in M[x]:      
-                t += len(M[x][y])
-
+        t = 0        
+        for x in self.reduxAdj:
+            t += len(x)
         return t
 
     def get(self, k1, k2):
@@ -85,7 +96,7 @@ class MitabTopology(object):
 
 
     def __getitem__(self, key):
-        return self.reduxAdj[key]
+        return self.reduxAdj.getNonDense(key)
 
 def parse_worker(input):
     print( 'Worker^^ ' + str(len (input['bufferArray'])) )

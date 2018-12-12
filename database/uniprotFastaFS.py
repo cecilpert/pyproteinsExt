@@ -2,7 +2,7 @@
     Build a database of fasta entries using file system directory architecture
     Usage:
         uniprotFastaFS_2.py <location> [--cluster <bigFile> --radius <radius>]
-        uniprotFastaFS_2.py <location> [--nodes --threads <nWorker> --size <size>]
+        uniprotFastaFS_2.py <location> [--nodes <volNumExp> --threads <nWorker> --size <size>]
         uniprotFastaFS_2.py <location> [--input <file> --size <size> --auto]
         uniprotFastaFS_2.py <location> [--get <proteinID> --out <fileOut>]
         uniprotFastaFS_2.py <location> (-i | --info)
@@ -19,7 +19,7 @@
         -o <fileOut>, --out <fileOut>         output file [default: stdout]
         -c <file>, --cluster <file>           archive file to dispatch to nodes
         -r <radius>, --radius <radius>        maximum number or entries per nodes
-        -n, --nodes                           Building the volumes of each nodes
+        -n <volNumExp>, --nodes <volNumExp>   Building the volumes of marching regExp  umber nodes
         -t <nWorker>, --threads <nWorker>     Set the number of workers for parrallel building of node volumes
 
 """
@@ -354,7 +354,7 @@ def _dirIndex(cDir, vName):
     iFile = cDir + '/index.txt'
     
     if not os.path.isfile(iFile):
-        print('No index file at ' + cDir)
+        #print('No index file at ' + cDir)
         return []
         #raise ValueError('No index file at ' + cDir)
     data = []
@@ -377,8 +377,7 @@ def _getElemDir(_id, rootDir):
     #print("Looking for a volume for request " + _id)
     defVal = [None, 0, None, False]
 
-    nodePath = glob.iglob(rootDir + '/node_*/') if glob.glob(rootDir + '/node_*/') else [ rootDir + '/' ]
-    print (nodePath)
+    nodePath = glob.iglob(rootDir + '/node_*/') if glob.glob(rootDir + '/node_*/') else [ rootDir + '/' ]    
     hitPaths = [ _getElemDirNode(iNode, _id) for iNode in nodePath  ]
    
     
@@ -499,6 +498,8 @@ if __name__ == "__main__":
         setNodes(arguments['<location>'], arguments['--cluster'], maxClusterIndex)
     
     if arguments['--nodes']:
+
+        print (arguments)
         nWorker = arguments['--threads'] if arguments['--threads'] else 8
        
         
@@ -506,11 +507,18 @@ if __name__ == "__main__":
         if arguments['--size']:
             opt['Nsize'] = int(arguments['--size'])
         
-        inputClusterIter =  [ (iFile, opt)  for iFile in glob.iglob(arguments['<location>'] + '/node_*.gz' ) ]
+        reNumNode = arguments['--nodes'].replace('?', '.').replace('*', '.*')
+        reNumNode = '_' + reNumNode + '\.gz$'
+        #print(reNumNode)
+        inputClusterIter =  [ (iFile, opt) for iFile in glob.iglob(arguments['<location>'] + '/node_*.gz' ) if re.search(reNumNode, iFile) ]
         print(inputClusterIter)
-
         with Pool(processes=nWorker) as pool:
             pool.map(pClusterBuild, inputClusterIter)
         
         print ("Done")
         #pClusterBuild(arguments['<location>'], number)
+
+        '''
+python ~/work/DVL/python3/pyproteinsExt/src/pyproteinsExt/database/uniprotFastaFS.py ~/tmp/vTrembl --node '??'
+
+        '''
