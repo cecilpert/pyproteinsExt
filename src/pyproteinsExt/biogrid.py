@@ -76,9 +76,9 @@ class BIOGRID_DATUM(object):
         return d
 
 class BIOGRID(object):
-    def __init__(self, mapperUrl=BIOGRID_UNIPROT_MAPPER_URL):
+    def __init__(self, **kwargs):  #mapperUrl=BIOGRID_UNIPROT_MAPPER_URL, uniprotMapFile=None
         self.biogridMapper = BIOGRIDMAPPER()
-        self.loadBiogridMapper()
+        self.loadBiogridMapper(**kwargs)
         self.data = {}
 
     def __iter__(self):
@@ -103,6 +103,14 @@ class BIOGRID(object):
 
             return list(set([ mol[0][1] for datum in self for mol in datum.interactors if mol[0][0] == "uniprokb:" ]))
 
+    def readFile(self, fileName):
+        data = ''
+
+        with open(fileName, 'r') as f:
+            data = f.read()
+
+        self.load(data)
+
     # biogridordered keys is the output sequence of dump method
     def load(self, stream, type="biogridOrderedKeys"):
         if not stream:
@@ -112,6 +120,7 @@ class BIOGRID(object):
 
         for line in stream.split("\n"):
             bufferStr.append(line)
+        print len(bufferStr)
         self.tsvBiogridParser(bufferStr)
 
     def tsvBiogridParser(self, iBuffer):
@@ -120,6 +129,7 @@ class BIOGRID(object):
             record = rec.split("\t")
             key = record.pop()
             self.data[key] = {} # recover the biogrid interaction identifier as primary key
+            print key
             for l, y in zip(BIOGRID_ORDERED_JSON_KEYS, record):
              #   print '-->' + y
 
@@ -289,7 +299,16 @@ class BIOGRID(object):
         # We expected dict w/ unique key per interactions
         return buf
 
-    def loadBiogridMapper(self):
+    def loadBiogridMapper(self, uniprotMapFile=None):
+
+        if uniprotMapFile:
+            with open(uniprotMapFile,'r') as f:
+                print 'reading uniprot mapping from ' + uniprotMapFile
+                data = f.read()
+                self._loadMapper(data)
+            return
+
+        print 'reading uniprot mapping from ' + BIOGRID_UNIPROT_MAPPER_URL
         try:
             response = urllib2.urlopen(BIOGRID_UNIPROT_MAPPER_URL)
 
@@ -303,11 +322,11 @@ class BIOGRID(object):
             return None
         raw = response.read()
         response.close()
-        for line in raw.split("\n"):
-            if line.startswith("#") or not line:continue
-            array = line.split()
-            self.biogridMapper(uniprotId=array[0], biogridId=array[1])
+        self._loadMapper(raw)
 
+
+    def _loadMapper(self, stream):
+        self.biogridMapper.load(stream)
     def analyse(self):
         if len(self) == 0: return None
         container = { "pmids" : [], "experiments" : [], "experimentTypes" : [],
@@ -343,6 +362,18 @@ class BIOGRIDMAPPER():
         if (uniprotId):
             value = self.toBiogrid(str(uniprotId))
             return value
+
+    def read(self, fileName):
+        s=''
+        with open(fileName, 'r') as f:
+            s = f.read()
+        self.load(s)
+
+    def load(self, stream):
+        for line in stream.split("\n"):
+            if line.startswith("#") or not line:continue
+            array = line.split()
+            self(uniprotId=array[0], biogridId=array[1])
 
     def toUniprot (self, id):
         if id in self.biogridToUniprot:

@@ -10,6 +10,8 @@ from os.path import expanduser
 
 PfamEntrySet = pfam.EntrySet()
 
+def getPfamCollection ():
+    return PfamEntrySet
 
 def proxySetting(**param):
     pyproteins.container.Core.proxySetting(param)
@@ -63,6 +65,12 @@ class EntrySet(pyproteins.container.customCollection.EntrySet):
 
         super(EntrySet, self).__init__(collectionPath=cachePath, constructor=Entry, typeCheck=isValidID, indexer=strip)
 
+    def serialize(self):
+        print "serializing uniprot collection"
+        super(EntrySet, self).serialize()
+        print "serializing pfam collection"
+        PfamEntrySet.serialize()
+
 class Entry(pyproteins.container.Core.Container):
     def __init__(self, id, baseUrl="http://www.uniprot.org/uniprot/", fileName=None):
         if not id:
@@ -73,6 +81,7 @@ class Entry(pyproteins.container.Core.Container):
         super(Entry, self).__init__(c_id, url=baseUrl + str(c_id) + '.xml', fileName=fileName)
         #pyproteins.container.Core.Container.__init__(self, id, url=baseUrl + str(id) + '.xml', fileName=fileName)
 
+        #print id + '-->' + str(fileName)
 
         self.xmlHandler = self.getXmlHandler()
 
