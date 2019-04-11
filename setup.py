@@ -30,7 +30,7 @@ setup(
   keywords = ['protein', 'sequence'], # arbitrary keywords
   classifiers = [],
   install_requires=[
-          'pyproteins', 'networkx', 'bs4', 'biopython'
+          'pyproteins', 'networkx', 'bs4', 'biopython','Owlready2','cython'
       ],
    package_data = {
    'pyproteinsExt': ['external/submitPsipred.sh','static/psicquicRegistryDefault.xml']
